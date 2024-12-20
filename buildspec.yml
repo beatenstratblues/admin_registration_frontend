@@ -1,0 +1,28 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Docker Hub...
+      - docker login -u jatinsinghbrevi -p jatinsinghshinobi
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 741448935727.dkr.ecr.ap-south-1.amazonaws.com
+      - echo Starting pre-build phase...
+      - REPO_URI=741448935727.dkr.ecr.ap-south-1.amazonaws.com/admin_registration/frontend
+      - echo Repository URI is $REPO_URI
+  build:
+    commands:
+      - echo Building the Docker image...
+      - docker build -t $REPO_URI:latest .
+      - echo Tagging the Docker image...
+      - docker tag $REPO_URI:latest $REPO_URI:$CODEBUILD_RESOLVED_SOURCE_VERSION
+  post_build:
+    commands:
+      - printf '[{"name":"frontend","imageUri":"%s"}]' $REPO_URI:$CODEBUILD_RESOLVED_SOURCE_VERSION > imagedefinitions.json
+      - echo Pushing the Docker image to ECR...
+      - docker push $REPO_URI:latest
+      - docker push $REPO_URI:$CODEBUILD_RESOLVED_SOURCE_VERSION
+artifacts:
+  files:
+    - '**/*'
+  discard-paths: yes
